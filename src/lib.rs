@@ -6,7 +6,7 @@ use swc_core::{
         visit::{VisitMut, VisitMutWith},
     },
 };
-use tracing::debug;
+// use tracing::debug;
 
 const IMPORT_NAME: &str = "errnesto/eszett";
 
@@ -41,20 +41,25 @@ impl VisitMut for TransformVisitor {
             return true;
         });
     }
-
     fn visit_mut_expr(&mut self, n: &mut Expr) {
         n.visit_mut_children_with(self);
 
         let sz_identifier;
-        debug!("{:?}", n);
         match &self.sz_identifier {
             Some(sz) => sz_identifier = sz,
             _ => return,
         }
 
         if let Some(t) = n.as_tagged_tpl() {
-            let expr = Expr::Ident(sz_identifier.clone());
-            n.take();
+            let tpl = Expr::Tpl(*t.tpl.clone());
+            let sz = Expr::Ident(sz_identifier.clone());
+            let expr = Expr::Bin(BinExpr {
+                left: Box::new(sz),
+                op: op!(bin, "+"),
+                right: Box::new(tpl),
+                span: t.span,
+            });
+            *n = expr;
         }
     }
 }
@@ -70,6 +75,6 @@ test_inline!(
         const hui = sz`my-class`
     "#,
     r#"
-        const hui = sz
+        const hui = sz + `my-class`
     "#
 );
