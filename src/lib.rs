@@ -49,18 +49,31 @@ impl VisitMut for TransformVisitor {
             Some(sz) => sz_identifier = sz,
             _ => return,
         }
-
-        if let Some(t) = n.as_tagged_tpl() {
-            let tpl = Expr::Tpl(*t.tpl.clone());
-            let sz = Expr::Ident(sz_identifier.clone());
-            let expr = Expr::Bin(BinExpr {
-                left: Box::new(sz),
-                op: op!(bin, "+"),
-                right: Box::new(tpl),
-                span: t.span,
-            });
-            *n = expr;
+        let tagged_template;
+        match n.as_tagged_tpl() {
+            Some(t) => tagged_template = t,
+            _ => return,
         }
+
+        let tag;
+        match tagged_template.tag.as_ident() {
+            Some(t) => tag = t,
+            _ => return
+        }
+
+        if tag.sym != sz_identifier.sym {
+            return;
+        }
+
+        let tpl = Expr::Tpl(*tagged_template.tpl.clone());
+        let scope = Expr::Lit("scope".into());
+        let expr = Expr::Bin(BinExpr {
+            left: Box::new(scope),
+            op: op!(bin, "+"),
+            right: Box::new(tpl),
+            span: tagged_template.span,
+        });
+        *n = expr;
     }
 }
 
@@ -93,7 +106,7 @@ test_inline!(
         const hui = sz`my-class`
     "#,
     r#"
-        const hui = sz + `my-class`
+        const hui = "scope" + `my-class`
     "#
 );
 
