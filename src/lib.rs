@@ -115,6 +115,20 @@ test_inline!(
 test_inline!(
     Default::default(),
     |_| as_folder(TransformVisitor::default()),
+    should_work_with_empty_template_literal,
+    r#"
+        import sz from 'errnesto/eszett'
+        const hui = sz``
+    "#,
+    r#"
+        const hui = "scope" + ``
+    "#
+);
+
+#[cfg(test)]
+test_inline!(
+    Default::default(),
+    |_| as_folder(TransformVisitor::default()),
     should_leave_non_sz_template_literals_alone,
     r#"
         import sz from 'errnesto/eszett'
