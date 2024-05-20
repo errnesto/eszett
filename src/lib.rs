@@ -17,31 +17,34 @@ pub struct TransformVisitor {
 }
 
 impl VisitMut for TransformVisitor {
-    fn visit_mut_import_decl(&mut self, n: &mut ImportDecl) {
-        n.visit_mut_children_with(self);
+    fn visit_mut_import_decl(&mut self, import_decl: &mut ImportDecl) {
+        import_decl.visit_mut_children_with(self);
 
-        if n.src.value == IMPORT_NAME {
-            // store identifier
-            for specifier in &n.specifiers {
-                if let ImportSpecifier::Default(s) = specifier {
-                    self.sz_identifier = Some(s.local.sym.clone())
-                }
-            }
-            // convert import to an invalid value
-            n.take();
+        if import_decl.src.value != IMPORT_NAME {
+            return;
         }
+
+        // store identifier
+        for specifier in &import_decl.specifiers {
+            if let ImportSpecifier::Default(default_import) = specifier {
+                self.sz_identifier = Some(default_import.local.sym.clone())
+            }
+        }
+
+        // convert import to an invalid value
+        import_decl.take();
     }
+
     fn visit_mut_module_items(&mut self, stmts: &mut Vec<ModuleItem>) {
         stmts.visit_mut_children_with(self);
 
         // remove invalid imports
-        stmts.retain(|s| {
-            if let ModuleItem::ModuleDecl(ModuleDecl::Import(x)) = s {
-                return !x.src.is_empty();
-            }
-            return true;
+        stmts.retain(|module_item| match module_item {
+            ModuleItem::ModuleDecl(ModuleDecl::Import(import)) => !import.src.is_empty(),
+            _ => true,
         });
     }
+
     fn visit_mut_expr(&mut self, n: &mut Expr) {
         n.visit_mut_children_with(self);
 
@@ -49,12 +52,10 @@ impl VisitMut for TransformVisitor {
             Some(sz) => sz,
             _ => return,
         };
-
         let tagged_template = match n.as_tagged_tpl() {
             Some(t) => t,
             _ => return,
         };
-
         let tag = match tagged_template.tag.as_ident() {
             Some(t) => t,
             _ => return,
