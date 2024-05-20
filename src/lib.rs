@@ -69,12 +69,44 @@ use swc_core::ecma::visit::as_folder;
 test_inline!(
     Default::default(),
     |_| as_folder(TransformVisitor::default()),
-    boo,
+    should_remove_sz_import,
+    r#"import sz from 'errnesto/eszett'"#,
+    r#""#
+);
+
+#[cfg(test)]
+test_inline!(
+    Default::default(),
+    |_| as_folder(TransformVisitor::default()),
+    should_keep_other_imports,
+    r#"import sz from 'some_import'"#,
+    r#"import sz from 'some_import'"#
+);
+
+#[cfg(test)]
+test_inline!(
+    Default::default(),
+    |_| as_folder(TransformVisitor::default()),
+    should_replace_tagged_template_literals,
     r#"
         import sz from 'errnesto/eszett'
         const hui = sz`my-class`
     "#,
     r#"
         const hui = sz + `my-class`
+    "#
+);
+
+#[cfg(test)]
+test_inline!(
+    Default::default(),
+    |_| as_folder(TransformVisitor::default()),
+    should_leave_non_sz_template_literals_alone,
+    r#"
+        import sz from 'errnesto/eszett'
+        const hui = css`my-class`
+    "#,
+    r#"
+        const hui = css`my-class`
     "#
 );
