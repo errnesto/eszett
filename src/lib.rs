@@ -1,4 +1,5 @@
 use swc_core::{
+    atoms::Atom,
     common::util::take::Take,
     ecma::{
         ast::*,
@@ -12,7 +13,7 @@ const IMPORT_NAME: &str = "errnesto/eszett";
 
 #[derive(Default)]
 pub struct TransformVisitor {
-    sz_identifier: Option<Ident>,
+    sz_identifier: Option<Atom>,
 }
 
 impl VisitMut for TransformVisitor {
@@ -23,7 +24,7 @@ impl VisitMut for TransformVisitor {
             // store identifier
             for specifier in &n.specifiers {
                 if let ImportSpecifier::Default(s) = specifier {
-                    self.sz_identifier = Some(s.local.clone())
+                    self.sz_identifier = Some(s.local.sym.clone())
                 }
             }
             // convert import to an invalid value
@@ -44,24 +45,22 @@ impl VisitMut for TransformVisitor {
     fn visit_mut_expr(&mut self, n: &mut Expr) {
         n.visit_mut_children_with(self);
 
-        let sz_identifier;
-        match &self.sz_identifier {
-            Some(sz) => sz_identifier = sz,
+        let sz_identifier = match &self.sz_identifier {
+            Some(sz) => sz,
             _ => return,
-        }
-        let tagged_template;
-        match n.as_tagged_tpl() {
-            Some(t) => tagged_template = t,
+        };
+
+        let tagged_template = match n.as_tagged_tpl() {
+            Some(t) => t,
             _ => return,
-        }
+        };
 
-        let tag;
-        match tagged_template.tag.as_ident() {
-            Some(t) => tag = t,
-            _ => return
-        }
+        let tag = match tagged_template.tag.as_ident() {
+            Some(t) => t,
+            _ => return,
+        };
 
-        if tag.sym != sz_identifier.sym {
+        if tag.sym != *sz_identifier {
             return;
         }
 
@@ -73,6 +72,7 @@ impl VisitMut for TransformVisitor {
             right: Box::new(tpl),
             span: tagged_template.span,
         });
+
         *n = expr;
     }
 }
