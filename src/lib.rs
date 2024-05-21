@@ -49,16 +49,16 @@ impl VisitMut for TransformVisitor {
         n.visit_mut_children_with(self);
 
         let sz_identifier = match &self.sz_identifier {
-            Some(sz) => sz,
-            _ => return,
+            Some(sz_identifier) => sz_identifier,
+            None => return,
         };
         let tagged_template = match n.as_tagged_tpl() {
-            Some(t) => t,
-            _ => return,
+            Some(tagged_template) => tagged_template,
+            None => return,
         };
         let tag = match tagged_template.tag.as_ident() {
-            Some(t) => t,
-            _ => return,
+            Some(tag) => tag,
+            None => return,
         };
 
         if tag.sym != *sz_identifier {
