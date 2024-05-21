@@ -1,3 +1,5 @@
+use std::default;
+
 use swc_core::{
     atoms::Atom,
     common::util::take::Take,
@@ -11,9 +13,16 @@ use swc_core::{
 
 const IMPORT_NAME: &str = "errnesto/eszett";
 
-#[derive(Default)]
 pub struct TransformVisitor {
     sz_identifier: Option<Atom>,
+}
+
+impl Default for TransformVisitor {
+    fn default() -> Self {
+        Self {
+            sz_identifier: None,
+        }
+    }
 }
 
 impl VisitMut for TransformVisitor {
@@ -65,16 +74,16 @@ impl VisitMut for TransformVisitor {
             return;
         }
 
-        let tpl = Expr::Tpl(*tagged_template.tpl.clone());
-        let scope = Expr::Lit("scope".into());
-        let expr = Expr::Bin(BinExpr {
-            left: Box::new(scope),
+        let template_literal = Expr::Tpl(*tagged_template.tpl.clone());
+        let scope_string = Expr::Lit("scope".into());
+
+        // replace node with new expression
+        *n = Expr::Bin(BinExpr {
+            left: Box::new(scope_string),
             op: op!(bin, "+"),
-            right: Box::new(tpl),
+            right: Box::new(template_literal),
             span: tagged_template.span,
         });
-
-        *n = expr;
     }
 }
 
