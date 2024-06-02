@@ -1,9 +1,11 @@
 {
     "name": "eszett",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "",
     "author": "Manuel Reich",
     "license": "ISC",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
     "exports": {
         ".": {
             "types": "./dist/index.d.ts",
@@ -11,6 +13,7 @@
         },
         "./swc": "./swc/target/wasm32-wasi/release/eszett.wasm"
     },
+    "sideEffects": false,
     "scripts": {
         "prepublishOnly": "npm run build && npm run build:swc",
         "build": "tsc",
