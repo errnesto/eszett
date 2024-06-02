@@ -1,8 +1,6 @@
-use std::default;
-
 use swc_core::{
     atoms::Atom,
-    common::util::take::Take,
+    common::{util::take::Take, DUMMY_SP},
     ecma::{
         ast::*,
         transforms::testing::test_inline,
@@ -15,17 +13,23 @@ const IMPORT_NAME: &str = "errnesto/eszett";
 
 pub struct TransformVisitor {
     sz_identifier: Option<Atom>,
+    scope_counter: usize,
+    current_scope: Option<String>,
 }
 
 impl Default for TransformVisitor {
     fn default() -> Self {
         Self {
             sz_identifier: None,
+            scope_counter: 0,
+            current_scope: None,
         }
     }
 }
 
 impl VisitMut for TransformVisitor {
+    // go through import declarations to see what identifier is used
+    // to import the eszett tag
     fn visit_mut_import_decl(&mut self, import_decl: &mut ImportDecl) {
         import_decl.visit_mut_children_with(self);
 
@@ -44,6 +48,8 @@ impl VisitMut for TransformVisitor {
         import_decl.take();
     }
 
+    // remove the eszett import declaration
+    // since it is not a real js function
     fn visit_mut_module_items(&mut self, stmts: &mut Vec<ModuleItem>) {
         stmts.visit_mut_children_with(self);
 
@@ -54,14 +60,31 @@ impl VisitMut for TransformVisitor {
         });
     }
 
-    fn visit_mut_expr(&mut self, n: &mut Expr) {
-        n.visit_mut_children_with(self);
+    fn visit_mut_fn_decl(&mut self, declaration: &mut FnDecl) {
+        let mut did_create_new_scope = false;
+        if self.current_scope == None {
+            self.scope_counter += 1;
+            self.current_scope = Some(format!("ß_{}", self.scope_counter));
+            did_create_new_scope = true;
+        }
+
+        declaration.visit_mut_children_with(self);
+
+        if did_create_new_scope {
+            self.current_scope = None
+        }
+    }
+
+    // replace all uses of sz indentifier as a template tag
+    // with a unique scope string prefixing the template literal
+    fn visit_mut_expr(&mut self, expression: &mut Expr) {
+        expression.visit_mut_children_with(self);
 
         let sz_identifier = match &self.sz_identifier {
             Some(sz_identifier) => sz_identifier,
             None => return,
         };
-        let tagged_template = match n.as_tagged_tpl() {
+        let tagged_template = match expression.as_tagged_tpl() {
             Some(tagged_template) => tagged_template,
             None => return,
         };
@@ -74,15 +97,20 @@ impl VisitMut for TransformVisitor {
             return;
         }
 
+        let current_scope = match &self.current_scope {
+            Some(current_scope) => current_scope,
+            None => "ß_0",
+        };
+
         let template_literal = Expr::Tpl(*tagged_template.tpl.clone());
-        let scope_string = Expr::Lit("scope".into());
+        let scope_string = Expr::Lit(current_scope.into());
 
         // replace node with new expression
-        *n = Expr::Bin(BinExpr {
+        *expression = Expr::Bin(BinExpr {
             left: Box::new(scope_string),
             op: op!(bin, "+"),
             right: Box::new(template_literal),
-            span: tagged_template.span,
+            span: DUMMY_SP,
         });
     }
 }
@@ -116,7 +144,7 @@ test_inline!(
         const hui = sz`my-class`
     "#,
     r#"
-        const hui = "scope" + `my-class`
+        const hui = "ß_0" + `my-class`
     "#
 );
 
@@ -130,7 +158,7 @@ test_inline!(
         const hui = sz``
     "#,
     r#"
-        const hui = "scope" + ``
+        const hui = "ß_0" + ``
     "#
 );
 
@@ -145,5 +173,73 @@ test_inline!(
     "#,
     r#"
         const hui = css`my-class`
+    "#
+);
+
+#[cfg(test)]
+test_inline!(
+    Default::default(),
+    |_| as_folder(TransformVisitor::default()),
+    should_create_a_new_scope_for_each_root_function,
+    r#"
+        import sz from 'errnesto/eszett'
+        function one() {
+            const hui = sz`my-class`
+        }
+        function two() {
+            const hui = sz`my-class`
+        }
+    "#,
+    r#"
+        function one() {
+            const hui = "ß_1" + `my-class`
+        }
+        function two() {
+            const hui = "ß_2" + `my-class`
+        }
+    "#
+);
+
+#[cfg(test)]
+test_inline!(
+    Default::default(),
+    |_| as_folder(TransformVisitor::default()),
+    should_use_the_same_scope_throughout_a_function_body,
+    r#"
+        import sz from 'errnesto/eszett'
+        function one() {
+            const hui = sz`my-class`
+            const buh = sz`my-class`
+        }
+    "#,
+    r#"
+        function one() {
+            const hui = "ß_1" + `my-class`
+            const buh = "ß_1" + `my-class`
+        }
+    "#
+);
+
+#[cfg(test)]
+test_inline!(
+    Default::default(),
+    |_| as_folder(TransformVisitor::default()),
+    should_use_the_same_scope_in_lexically_nested_functions,
+    r#"
+        import sz from 'errnesto/eszett'
+        function one() {
+            const hui = sz`my-class`
+            function two() {
+                const buh = sz`my-class`
+            }
+        }
+    "#,
+    r#"
+        function one() {
+            const hui = "ß_1" + `my-class`
+            function two() {
+                const buh = "ß_1" + `my-class`
+            }
+        }
     "#
 );
