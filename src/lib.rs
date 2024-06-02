@@ -6,23 +6,49 @@ use swc_core::{
         transforms::testing::test_inline,
         visit::{VisitMut, VisitMutWith},
     },
+    plugin::{
+        metadata::TransformPluginMetadataContextKind, plugin_transform,
+        proxies::TransformPluginProgramMetadata,
+    },
 };
+use regex::Regex;
 // use tracing::debug;
 
 const IMPORT_NAME: &str = "errnesto/eszett";
 
 pub struct TransformVisitor {
+    filepath: String,
     sz_identifier: Option<Atom>,
     scope_counter: usize,
-    current_scope: Option<String>,
+    current_scope: Option<usize>,
 }
 
 impl TransformVisitor {
+    pub fn new(filepath: impl Into<String>) -> Self {
+        Self {
+            filepath: filepath.into(),
+            sz_identifier: None,
+            scope_counter: 0,
+            current_scope: None,
+        }
+    }
+
+    fn get_scope(&self) -> String {
+        let re = Regex::new(r"[^a-zA-Z0-9_-]").unwrap();    
+        let prefix = re.replace_all(&self.filepath, "_");
+        let current_scope = match self.current_scope {
+            Some(current_scope) => current_scope,
+            None => 0,
+        };
+
+        return format!("ß-{}-{}", prefix, current_scope);
+    }
+
     fn visit_mut_children_providing_current_scope(&mut self, node: &mut dyn VisitMutWith<Self>) {
         let mut did_create_new_scope = false;
         if self.current_scope == None {
             self.scope_counter += 1;
-            self.current_scope = Some(format!("ß-{}", self.scope_counter));
+            self.current_scope = Some(self.scope_counter);
             did_create_new_scope = true;
         }
 
@@ -37,6 +63,7 @@ impl TransformVisitor {
 impl Default for TransformVisitor {
     fn default() -> Self {
         Self {
+            filepath: String::from("file.js"),
             sz_identifier: None,
             scope_counter: 0,
             current_scope: None,
@@ -80,7 +107,7 @@ impl VisitMut for TransformVisitor {
     fn visit_mut_fn_decl(&mut self, declaration: &mut FnDecl) {
         self.visit_mut_children_providing_current_scope(declaration);
     }
-    fn visit_mut_arrow_expr(&mut self,arrow_expr: &mut ArrowExpr) {
+    fn visit_mut_arrow_expr(&mut self, arrow_expr: &mut ArrowExpr) {
         self.visit_mut_children_providing_current_scope(arrow_expr)
     }
 
@@ -106,13 +133,10 @@ impl VisitMut for TransformVisitor {
             return;
         }
 
-        let current_scope = match &self.current_scope {
-            Some(current_scope) => current_scope,
-            None => "ß-0",
-        };
+        let scope_name = self.get_scope();
 
         let template_literal = Expr::Tpl(*tagged_template.tpl.clone());
-        let scope_string = Expr::Lit(current_scope.into());
+        let scope_string = Expr::Lit(scope_name.into());
 
         // replace node with new expression
         *expression = Expr::Bin(BinExpr {
@@ -122,6 +146,18 @@ impl VisitMut for TransformVisitor {
             span: DUMMY_SP,
         });
     }
+}
+
+#[plugin_transform]
+pub fn process_transform(mut program: Program, data: TransformPluginProgramMetadata) -> Program {
+    let filepath = match data.get_context(&TransformPluginMetadataContextKind::Filename) {
+        Some(s) => s,
+        None => String::from(""),
+    };
+
+    program.visit_mut_with(&mut TransformVisitor::new(filepath));
+
+    return program;
 }
 
 #[cfg(test)]
@@ -153,7 +189,7 @@ test_inline!(
         const hui = sz`my-class`
     "#,
     r#"
-        const hui = "ß-0" + `my-class`
+        const hui = "ß-file_js-0" + `my-class`
     "#
 );
 
@@ -167,7 +203,7 @@ test_inline!(
         const hui = sz``
     "#,
     r#"
-        const hui = "ß-0" + ``
+        const hui = "ß-file_js-0" + ``
     "#
 );
 
@@ -201,10 +237,10 @@ test_inline!(
     "#,
     r#"
         function one() {
-            const hui = "ß-1" + `my-class`
+            const hui = "ß-file_js-1" + `my-class`
         }
         function two() {
-            const hui = "ß-2" + `my-class`
+            const hui = "ß-file_js-2" + `my-class`
         }
     "#
 );
@@ -223,8 +259,8 @@ test_inline!(
     "#,
     r#"
         function one() {
-            const hui = "ß-1" + `my-class`
-            const buh = "ß-1" + `my-class`
+            const hui = "ß-file_js-1" + `my-class`
+            const buh = "ß-file_js-1" + `my-class`
         }
     "#
 );
@@ -245,9 +281,9 @@ test_inline!(
     "#,
     r#"
         function one() {
-            const hui = "ß-1" + `my-class`
+            const hui = "ß-file_js-1" + `my-class`
             function two() {
-                const buh = "ß-1" + `my-class`
+                const buh = "ß-file_js-1" + `my-class`
             }
         }
     "#
@@ -266,7 +302,7 @@ test_inline!(
     "#,
     r#"
         const one = () => {
-            const hui = "ß-1" + `my-class`
+            const hui = "ß-file_js-1" + `my-class`
         }
     "#
 );
@@ -285,8 +321,8 @@ test_inline!(
     "#,
     r#"
         const one = () => {
-            const hui = "ß-1" + `my-class`
-            const buh = "ß-1" + `my-class`
+            const hui = "ß-file_js-1" + `my-class`
+            const buh = "ß-file_js-1" + `my-class`
         }
     "#
 );
@@ -307,9 +343,9 @@ test_inline!(
     "#,
     r#"
         const one = () => {
-            const hui = "ß-1" + `my-class`
+            const hui = "ß-file_js-1" + `my-class`
             function two() {
-                const buh = "ß-1" + `my-class`
+                const buh = "ß-file_js-1" + `my-class`
             }
         }
     "#

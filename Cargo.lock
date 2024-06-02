@@ -326,6 +326,7 @@ dependencies = [
 name = "eszett"
 version = "0.1.0"
 dependencies = [
+ "regex",
  "serde",
  "swc_core",
  "tracing",
