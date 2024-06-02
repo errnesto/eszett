@@ -1,3 +1,4 @@
+use regex::Regex;
 use swc_core::{
     atoms::Atom,
     common::{util::take::Take, DUMMY_SP},
@@ -11,14 +12,15 @@ use swc_core::{
         proxies::TransformPluginProgramMetadata,
     },
 };
-use regex::Regex;
 // use tracing::debug;
 
 const IMPORT_NAME: &str = "eszett";
+const SCOPE_NAME_NAME: &str = "scopeName";
 
 pub struct TransformVisitor {
     filepath: String,
     sz_identifier: Option<Atom>,
+    scope_name_identifier: Option<Atom>,
     scope_counter: usize,
     current_scope: Option<usize>,
 }
@@ -28,13 +30,14 @@ impl TransformVisitor {
         Self {
             filepath: filepath.into(),
             sz_identifier: None,
+            scope_name_identifier: None,
             scope_counter: 0,
             current_scope: None,
         }
     }
 
     fn get_scope(&self) -> String {
-        let re = Regex::new(r"[^a-zA-Z0-9_-]").unwrap();    
+        let re = Regex::new(r"[^a-zA-Z0-9_-]").unwrap();
         let prefix = re.replace_all(&self.filepath, "_");
         let current_scope = match self.current_scope {
             Some(current_scope) => current_scope,
@@ -65,6 +68,7 @@ impl Default for TransformVisitor {
         Self {
             filepath: String::from("file.js"),
             sz_identifier: None,
+            scope_name_identifier: None,
             scope_counter: 0,
             current_scope: None,
         }
@@ -81,10 +85,29 @@ impl VisitMut for TransformVisitor {
             return;
         }
 
-        // store identifier
         for specifier in &import_decl.specifiers {
+            // store sz identifier
             if let ImportSpecifier::Default(default_import) = specifier {
                 self.sz_identifier = Some(default_import.local.sym.clone())
+            }
+
+            // store scope name identifier
+            if let ImportSpecifier::Named(named_import) = specifier {
+                let import_identifier = &named_import.local.sym;
+                let export_name: &Atom = match &named_import.imported {
+                    // e.g. `import { "scopeName" as prefix } from "eszett"``
+                    Some(ModuleExportName::Str(imported)) => &imported.value,
+                    // e.g. `import { scopeName as prefix } from "eszett"`
+                    // then we find the export name in here
+                    Some(ModuleExportName::Ident(imported)) => &imported.sym,
+                    // otherwise: `import { scopeName } from "eszett"`
+                    // we can just use the local symbol
+                    None => import_identifier,
+                };
+
+                if export_name == SCOPE_NAME_NAME {
+                    self.scope_name_identifier = Some(import_identifier.clone());
+                }
             }
         }
 
