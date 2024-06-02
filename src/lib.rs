@@ -17,6 +17,23 @@ pub struct TransformVisitor {
     current_scope: Option<String>,
 }
 
+impl TransformVisitor {
+    fn visit_mut_children_providing_current_scope(&mut self, node: &mut dyn VisitMutWith<Self>) {
+        let mut did_create_new_scope = false;
+        if self.current_scope == None {
+            self.scope_counter += 1;
+            self.current_scope = Some(format!("ß-{}", self.scope_counter));
+            did_create_new_scope = true;
+        }
+
+        node.visit_mut_children_with(self);
+
+        if did_create_new_scope {
+            self.current_scope = None
+        }
+    }
+}
+
 impl Default for TransformVisitor {
     fn default() -> Self {
         Self {
@@ -61,18 +78,10 @@ impl VisitMut for TransformVisitor {
     }
 
     fn visit_mut_fn_decl(&mut self, declaration: &mut FnDecl) {
-        let mut did_create_new_scope = false;
-        if self.current_scope == None {
-            self.scope_counter += 1;
-            self.current_scope = Some(format!("ß_{}", self.scope_counter));
-            did_create_new_scope = true;
-        }
-
-        declaration.visit_mut_children_with(self);
-
-        if did_create_new_scope {
-            self.current_scope = None
-        }
+        self.visit_mut_children_providing_current_scope(declaration);
+    }
+    fn visit_mut_arrow_expr(&mut self,arrow_expr: &mut ArrowExpr) {
+        self.visit_mut_children_providing_current_scope(arrow_expr)
     }
 
     // replace all uses of sz indentifier as a template tag
@@ -99,7 +108,7 @@ impl VisitMut for TransformVisitor {
 
         let current_scope = match &self.current_scope {
             Some(current_scope) => current_scope,
-            None => "ß_0",
+            None => "ß-0",
         };
 
         let template_literal = Expr::Tpl(*tagged_template.tpl.clone());
@@ -144,7 +153,7 @@ test_inline!(
         const hui = sz`my-class`
     "#,
     r#"
-        const hui = "ß_0" + `my-class`
+        const hui = "ß-0" + `my-class`
     "#
 );
 
@@ -158,7 +167,7 @@ test_inline!(
         const hui = sz``
     "#,
     r#"
-        const hui = "ß_0" + ``
+        const hui = "ß-0" + ``
     "#
 );
 
@@ -192,10 +201,10 @@ test_inline!(
     "#,
     r#"
         function one() {
-            const hui = "ß_1" + `my-class`
+            const hui = "ß-1" + `my-class`
         }
         function two() {
-            const hui = "ß_2" + `my-class`
+            const hui = "ß-2" + `my-class`
         }
     "#
 );
@@ -214,8 +223,8 @@ test_inline!(
     "#,
     r#"
         function one() {
-            const hui = "ß_1" + `my-class`
-            const buh = "ß_1" + `my-class`
+            const hui = "ß-1" + `my-class`
+            const buh = "ß-1" + `my-class`
         }
     "#
 );
@@ -236,9 +245,71 @@ test_inline!(
     "#,
     r#"
         function one() {
-            const hui = "ß_1" + `my-class`
+            const hui = "ß-1" + `my-class`
             function two() {
-                const buh = "ß_1" + `my-class`
+                const buh = "ß-1" + `my-class`
+            }
+        }
+    "#
+);
+
+#[cfg(test)]
+test_inline!(
+    Default::default(),
+    |_| as_folder(TransformVisitor::default()),
+    should_create_a_new_scope_for_each_root_arrow_function,
+    r#"
+        import sz from 'errnesto/eszett'
+        const one = () => {
+            const hui = sz`my-class`
+        }
+    "#,
+    r#"
+        const one = () => {
+            const hui = "ß-1" + `my-class`
+        }
+    "#
+);
+
+#[cfg(test)]
+test_inline!(
+    Default::default(),
+    |_| as_folder(TransformVisitor::default()),
+    should_use_the_same_scope_throughout_a_arrow_function_body,
+    r#"
+        import sz from 'errnesto/eszett'
+        const one = () => {
+            const hui = sz`my-class`
+            const buh = sz`my-class`
+        }
+    "#,
+    r#"
+        const one = () => {
+            const hui = "ß-1" + `my-class`
+            const buh = "ß-1" + `my-class`
+        }
+    "#
+);
+
+#[cfg(test)]
+test_inline!(
+    Default::default(),
+    |_| as_folder(TransformVisitor::default()),
+    should_use_the_same_scope_in_lexically_nested_arrow_functions,
+    r#"
+        import sz from 'errnesto/eszett'
+        const one = () => {
+            const hui = sz`my-class`
+            function two() {
+                const buh = sz`my-class`
+            }
+        }
+    "#,
+    r#"
+        const one = () => {
+            const hui = "ß-1" + `my-class`
+            function two() {
+                const buh = "ß-1" + `my-class`
             }
         }
     "#
