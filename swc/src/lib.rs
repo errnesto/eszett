@@ -19,8 +19,8 @@ const SCOPE_NAME_NAME: &str = "scopeName";
 
 pub struct TransformVisitor {
     filepath: String,
-    sz_identifier: Option<Atom>,
-    scope_name_identifier: Option<Atom>,
+    sz_identifier: Option<Id>,
+    scope_name_identifier: Option<Id>,
     scope_counter: usize,
     current_scope: Option<usize>,
 }
@@ -61,6 +61,55 @@ impl TransformVisitor {
             self.current_scope = None
         }
     }
+
+    fn replace_sz_identifier_with_scope_name(&mut self, expression: &mut Expr) {
+        let sz_identifier = match &self.sz_identifier {
+            Some(sz_identifier) => sz_identifier,
+            None => return,
+        };
+        let tagged_template = match expression.as_tagged_tpl() {
+            Some(tagged_template) => tagged_template,
+            None => return,
+        };
+        let tag = match tagged_template.tag.as_ident() {
+            Some(tag) => tag,
+            None => return,
+        };
+
+        if tag.to_id() != *sz_identifier {
+            return;
+        }
+
+        let scope_name = self.get_scope() + " ";
+
+        let template_literal = Expr::Tpl(*tagged_template.tpl.clone());
+        let scope_string = Expr::Lit(scope_name.into());
+
+        // replace node with new expression
+        *expression = Expr::Bin(BinExpr {
+            left: Box::new(scope_string),
+            op: op!(bin, "+"),
+            right: Box::new(template_literal),
+            span: DUMMY_SP,
+        });
+    }
+
+    fn replace_scope_name_identifier_with_scope_name(&mut self, expression: &mut Expr) {
+        let scope_name_identifier = match &self.scope_name_identifier {
+            Some(scope_name_identifier) => scope_name_identifier,
+            None => return,
+        };
+        let identifier = match expression.as_ident() {
+            Some(tagged_template) => tagged_template,
+            None => return,
+        };
+        if identifier.to_id() != *scope_name_identifier {
+            return;
+        }
+
+        let scope_name = self.get_scope();
+        *expression = Expr::Lit(scope_name.into());
+    }
 }
 
 impl Default for TransformVisitor {
@@ -88,12 +137,12 @@ impl VisitMut for TransformVisitor {
         for specifier in &import_decl.specifiers {
             // store sz identifier
             if let ImportSpecifier::Default(default_import) = specifier {
-                self.sz_identifier = Some(default_import.local.sym.clone())
+                self.sz_identifier = Some(default_import.local.to_id())
             }
 
             // store scope name identifier
             if let ImportSpecifier::Named(named_import) = specifier {
-                let import_identifier = &named_import.local.sym;
+                let import_identifier = &named_import.local;
                 let export_name: &Atom = match &named_import.imported {
                     // e.g. `import { "scopeName" as prefix } from "eszett"``
                     Some(ModuleExportName::Str(imported)) => &imported.value,
@@ -102,11 +151,11 @@ impl VisitMut for TransformVisitor {
                     Some(ModuleExportName::Ident(imported)) => &imported.sym,
                     // otherwise: `import { scopeName } from "eszett"`
                     // we can just use the local symbol
-                    None => import_identifier,
+                    None => &import_identifier.sym,
                 };
 
                 if export_name == SCOPE_NAME_NAME {
-                    self.scope_name_identifier = Some(import_identifier.clone());
+                    self.scope_name_identifier = Some(import_identifier.to_id());
                 }
             }
         }
@@ -138,36 +187,8 @@ impl VisitMut for TransformVisitor {
     // with a unique scope string prefixing the template literal
     fn visit_mut_expr(&mut self, expression: &mut Expr) {
         expression.visit_mut_children_with(self);
-
-        let sz_identifier = match &self.sz_identifier {
-            Some(sz_identifier) => sz_identifier,
-            None => return,
-        };
-        let tagged_template = match expression.as_tagged_tpl() {
-            Some(tagged_template) => tagged_template,
-            None => return,
-        };
-        let tag = match tagged_template.tag.as_ident() {
-            Some(tag) => tag,
-            None => return,
-        };
-
-        if tag.sym != *sz_identifier {
-            return;
-        }
-
-        let scope_name = self.get_scope() + " ";
-
-        let template_literal = Expr::Tpl(*tagged_template.tpl.clone());
-        let scope_string = Expr::Lit(scope_name.into());
-
-        // replace node with new expression
-        *expression = Expr::Bin(BinExpr {
-            left: Box::new(scope_string),
-            op: op!(bin, "+"),
-            right: Box::new(template_literal),
-            span: DUMMY_SP,
-        });
+        self.replace_sz_identifier_with_scope_name(expression);
+        self.replace_scope_name_identifier_with_scope_name(expression);
     }
 }
 
@@ -188,8 +209,26 @@ use swc_core::ecma::visit::as_folder;
 test_inline!(
     Default::default(),
     |_| as_folder(TransformVisitor::default()),
-    should_remove_sz_import,
+    should_remove_sz_import_when_using_default_import,
     r#"import sz from 'eszett'"#,
+    r#""#
+);
+
+#[cfg(test)]
+test_inline!(
+    Default::default(),
+    |_| as_folder(TransformVisitor::default()),
+    should_remove_sz_import_when_using_named_import,
+    r#"import { scopeName } from 'eszett'"#,
+    r#""#
+);
+
+#[cfg(test)]
+test_inline!(
+    Default::default(),
+    |_| as_folder(TransformVisitor::default()),
+    should_remove_sz_import_when_using_both_import,
+    r#"import sz, { scopeName as foo } from 'eszett'"#,
     r#""#
 );
 
@@ -370,6 +409,68 @@ test_inline!(
             function two() {
                 const buh = "ß-file_js-1 " + `my-class`
             }
+        }
+    "#
+);
+
+#[cfg(test)]
+test_inline!(
+    Default::default(),
+    |_| as_folder(TransformVisitor::default()),
+    should_replace_scope_name_variable_with_current_scope,
+    r#"
+        import { scopeName } from 'eszett'
+        const scope = scopeName
+    "#,
+    r#"
+        const scope = "ß-file_js-0"
+    "#
+);
+
+#[cfg(test)]
+test_inline!(
+    Default::default(),
+    |_| as_folder(TransformVisitor::default()),
+    should_replace_scope_name_variable_when_renamed_in_import,
+    r#"
+        import { scopeName as sc } from 'eszett'
+        const scope = sc
+    "#,
+    r#"
+        const scope = "ß-file_js-0"
+    "#
+);
+
+#[cfg(test)]
+test_inline!(
+    Default::default(),
+    |_| as_folder(TransformVisitor::default()),
+    should_not_replace_other_variables_with_the_scope_name_name,
+    r#"
+        import { scopeName as sc } from 'eszett'
+        const scope = scopeName
+    "#,
+    r#"
+        const scope = scopeName
+    "#
+);
+
+#[cfg(test)]
+test_inline!(
+    Default::default(),
+    |_| as_folder(TransformVisitor::default()),
+    should_not_replace_variables_shaddowing_scope_name,
+    r#"
+        import { scopeName } from 'eszett'
+        function hui() {
+            const scopeName = 'lorem'
+            const bar = scopeName
+        }
+    "#,
+    r#"
+        function hui() {
+            const scopeName = 'lorem'
+            const bar = scopeName
         }
     "#
 );
