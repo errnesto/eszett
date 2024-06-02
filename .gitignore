@@ -1,3 +1,5 @@
 /target
 ^target/
 target
+dist
+node_modules

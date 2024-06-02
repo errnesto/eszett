@@ -2,13 +2,28 @@
     "name": "eszett",
     "version": "0.1.0",
     "description": "",
-    "author": "",
+    "author": "Manuel Reich",
     "license": "ISC",
-    "keywords": ["swc-plugin"],
-    "main": "target/wasm32-wasi/release/eszett.wasm",
-    "scripts": {
-        "prepublishOnly": "cargo build-wasi --release"
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "main": "./dist/index.js"
+        },
+        "./swc": "./swc/target/wasm32-wasi/release/eszett.wasm"
     },
-    "files": [],
-    "preferUnplugged": true
+    "scripts": {
+        "prepublishOnly": "npm run build && npm run build:swc",
+        "build": "tsc",
+        "build:swc": "cargo build --manifest-path ./swc/Cargo.toml --release --target=wasm32-wasi"
+    },
+    "files": [
+        "src",
+        "dist",
+        "swc/package.json",
+        "swc/target/wasm32-wasi/release/eszett.wasm"
+    ],
+    "preferUnplugged": true,
+    "devDependencies": {
+        "typescript": "^5.4.5"
+    }
 }
