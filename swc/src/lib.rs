@@ -133,7 +133,7 @@ impl VisitMut for TransformVisitor {
             return;
         }
 
-        let scope_name = self.get_scope();
+        let scope_name = self.get_scope() + " ";
 
         let template_literal = Expr::Tpl(*tagged_template.tpl.clone());
         let scope_string = Expr::Lit(scope_name.into());
@@ -189,7 +189,7 @@ test_inline!(
         const hui = sz`my-class`
     "#,
     r#"
-        const hui = "ß-file_js-0" + `my-class`
+        const hui = "ß-file_js-0 " + `my-class`
     "#
 );
 
@@ -203,7 +203,7 @@ test_inline!(
         const hui = sz``
     "#,
     r#"
-        const hui = "ß-file_js-0" + ``
+        const hui = "ß-file_js-0 " + ``
     "#
 );
 
@@ -237,10 +237,10 @@ test_inline!(
     "#,
     r#"
         function one() {
-            const hui = "ß-file_js-1" + `my-class`
+            const hui = "ß-file_js-1 " + `my-class`
         }
         function two() {
-            const hui = "ß-file_js-2" + `my-class`
+            const hui = "ß-file_js-2 " + `my-class`
         }
     "#
 );
@@ -259,8 +259,8 @@ test_inline!(
     "#,
     r#"
         function one() {
-            const hui = "ß-file_js-1" + `my-class`
-            const buh = "ß-file_js-1" + `my-class`
+            const hui = "ß-file_js-1 " + `my-class`
+            const buh = "ß-file_js-1 " + `my-class`
         }
     "#
 );
@@ -281,9 +281,9 @@ test_inline!(
     "#,
     r#"
         function one() {
-            const hui = "ß-file_js-1" + `my-class`
+            const hui = "ß-file_js-1 " + `my-class`
             function two() {
-                const buh = "ß-file_js-1" + `my-class`
+                const buh = "ß-file_js-1 " + `my-class`
             }
         }
     "#
@@ -302,7 +302,7 @@ test_inline!(
     "#,
     r#"
         const one = () => {
-            const hui = "ß-file_js-1" + `my-class`
+            const hui = "ß-file_js-1 " + `my-class`
         }
     "#
 );
@@ -321,8 +321,8 @@ test_inline!(
     "#,
     r#"
         const one = () => {
-            const hui = "ß-file_js-1" + `my-class`
-            const buh = "ß-file_js-1" + `my-class`
+            const hui = "ß-file_js-1 " + `my-class`
+            const buh = "ß-file_js-1 " + `my-class`
         }
     "#
 );
@@ -343,9 +343,9 @@ test_inline!(
     "#,
     r#"
         const one = () => {
-            const hui = "ß-file_js-1" + `my-class`
+            const hui = "ß-file_js-1 " + `my-class`
             function two() {
-                const buh = "ß-file_js-1" + `my-class`
+                const buh = "ß-file_js-1 " + `my-class`
             }
         }
     "#
