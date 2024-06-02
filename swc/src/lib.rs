@@ -14,7 +14,7 @@ use swc_core::{
 use regex::Regex;
 // use tracing::debug;
 
-const IMPORT_NAME: &str = "errnesto/eszett";
+const IMPORT_NAME: &str = "eszett";
 
 pub struct TransformVisitor {
     filepath: String,
@@ -166,7 +166,7 @@ test_inline!(
     Default::default(),
     |_| as_folder(TransformVisitor::default()),
     should_remove_sz_import,
-    r#"import sz from 'errnesto/eszett'"#,
+    r#"import sz from 'eszett'"#,
     r#""#
 );
 
@@ -185,7 +185,7 @@ test_inline!(
     |_| as_folder(TransformVisitor::default()),
     should_replace_tagged_template_literals,
     r#"
-        import sz from 'errnesto/eszett'
+        import sz from 'eszett'
         const hui = sz`my-class`
     "#,
     r#"
@@ -199,7 +199,7 @@ test_inline!(
     |_| as_folder(TransformVisitor::default()),
     should_work_with_empty_template_literal,
     r#"
-        import sz from 'errnesto/eszett'
+        import sz from 'eszett'
         const hui = sz``
     "#,
     r#"
@@ -213,7 +213,7 @@ test_inline!(
     |_| as_folder(TransformVisitor::default()),
     should_leave_non_sz_template_literals_alone,
     r#"
-        import sz from 'errnesto/eszett'
+        import sz from 'eszett'
         const hui = css`my-class`
     "#,
     r#"
@@ -227,7 +227,7 @@ test_inline!(
     |_| as_folder(TransformVisitor::default()),
     should_create_a_new_scope_for_each_root_function,
     r#"
-        import sz from 'errnesto/eszett'
+        import sz from 'eszett'
         function one() {
             const hui = sz`my-class`
         }
@@ -251,7 +251,7 @@ test_inline!(
     |_| as_folder(TransformVisitor::default()),
     should_use_the_same_scope_throughout_a_function_body,
     r#"
-        import sz from 'errnesto/eszett'
+        import sz from 'eszett'
         function one() {
             const hui = sz`my-class`
             const buh = sz`my-class`
@@ -271,7 +271,7 @@ test_inline!(
     |_| as_folder(TransformVisitor::default()),
     should_use_the_same_scope_in_lexically_nested_functions,
     r#"
-        import sz from 'errnesto/eszett'
+        import sz from 'eszett'
         function one() {
             const hui = sz`my-class`
             function two() {
@@ -295,7 +295,7 @@ test_inline!(
     |_| as_folder(TransformVisitor::default()),
     should_create_a_new_scope_for_each_root_arrow_function,
     r#"
-        import sz from 'errnesto/eszett'
+        import sz from 'eszett'
         const one = () => {
             const hui = sz`my-class`
         }
@@ -313,7 +313,7 @@ test_inline!(
     |_| as_folder(TransformVisitor::default()),
     should_use_the_same_scope_throughout_a_arrow_function_body,
     r#"
-        import sz from 'errnesto/eszett'
+        import sz from 'eszett'
         const one = () => {
             const hui = sz`my-class`
             const buh = sz`my-class`
@@ -333,7 +333,7 @@ test_inline!(
     |_| as_folder(TransformVisitor::default()),
     should_use_the_same_scope_in_lexically_nested_arrow_functions,
     r#"
-        import sz from 'errnesto/eszett'
+        import sz from 'eszett'
         const one = () => {
             const hui = sz`my-class`
             function two() {
