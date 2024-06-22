@@ -53,9 +53,13 @@ module.exports = {
 }
 ```
 
+## Usage
+
+### How it Works
+
 eszett generates a unique id for each react component and gives you two helper methods to use it:
 
-### `sz` tagged template literal
+#### `sz` tagged template literal
 
 ```jsx
 // this input
@@ -66,7 +70,7 @@ import sz from "eszett";
 <div className={"23u00ds-1 " + `header`} />;
 ```
 
-### `scopeName` variable
+#### `scopeName` variable
 
 ```js
 // this input
@@ -82,7 +86,7 @@ console.log("23u00ds-1");
 
 Together with support for [`<style>` tags in react 19](https://react.dev/reference/react-dom/components/style) and [css nesting](https://developer.mozilla.org/en-US/docs/Web/CSS/Nesting_selector) the two helpers is all we need to encapsulate our styles inside our components.
 
-## Without modern css
+### Without modern css
 
 If you need to suport older Browsers you could use something like [postcss-preset-env](https://preset-env.cssdb.org/features/#nesting-rules) or you can just write classic css:
 
