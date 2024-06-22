@@ -2,6 +2,11 @@
 
 Explicit css scopes for react – by using a unique class name per component generated at build time.
 
+## TODO
+
+- [ ] hash relative filenames (maybe add an option to keep relative filenames – but as of now the filenames leak way too much information)
+- [ ] auto rewite classNames (I liked the simplicity of just adding the helpers – but the ergonomics of tagging every class are not so nice, especially html tags without classes are a bit strange to handle)
+
 ```jsx
 import sz, { scopeName } from "eszett";
 
