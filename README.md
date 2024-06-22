@@ -31,6 +31,28 @@ function Header() {
 }
 ```
 
+## Install
+
+```
+npm install eszett
+```
+
+`eszett` is an [swc](https://swc.rs/docs/usage/swc-loader) plugin – so it should work wherever swc works.
+
+### With NextJs
+
+In nextjs you can add it to your `next.config.js`:
+
+```js
+// next.config.js
+module.exports = {
+  …
+  experimental: {
+    swcPlugins: [["eszett/swc", {}]]
+  }
+}
+```
+
 eszett generates a unique id for each react component and gives you two helper methods to use it:
 
 ### `sz` tagged template literal
