@@ -5,7 +5,7 @@ use swc_core::{
     ecma::{
         ast::*,
         transforms::testing::test_inline,
-        visit::{VisitMut, VisitMutWith},
+        visit::{Fold, VisitMut, VisitMutWith},
     },
     plugin::{
         metadata::TransformPluginMetadataContextKind, plugin_transform,
@@ -205,10 +205,23 @@ pub fn process_transform(mut program: Program, data: TransformPluginProgramMetad
 }
 
 #[cfg(test)]
-use swc_core::ecma::visit::as_folder;
+fn tr() -> impl Fold {
+    use swc_core::{
+        common::{chain, Mark},
+        ecma::{transforms::base::resolver, visit::as_folder},
+    };
+
+    chain!(
+        resolver(Mark::new(), Mark::new(), false),
+        // Most of transform does not care about globals so it does not need `SyntaxContext`
+        as_folder(TransformVisitor::default())
+    )
+}
+
+#[cfg(test)]
 test_inline!(
     Default::default(),
-    |_| as_folder(TransformVisitor::default()),
+    |_| tr(),
     should_remove_sz_import_when_using_default_import,
     r#"import sz from 'eszett'"#,
     r#""#
@@ -217,7 +230,7 @@ test_inline!(
 #[cfg(test)]
 test_inline!(
     Default::default(),
-    |_| as_folder(TransformVisitor::default()),
+    |_| tr(),
     should_remove_sz_import_when_using_named_import,
     r#"import { scopeName } from 'eszett'"#,
     r#""#
@@ -226,7 +239,7 @@ test_inline!(
 #[cfg(test)]
 test_inline!(
     Default::default(),
-    |_| as_folder(TransformVisitor::default()),
+    |_| tr(),
     should_remove_sz_import_when_using_both_import,
     r#"import sz, { scopeName as foo } from 'eszett'"#,
     r#""#
@@ -235,7 +248,7 @@ test_inline!(
 #[cfg(test)]
 test_inline!(
     Default::default(),
-    |_| as_folder(TransformVisitor::default()),
+    |_| tr(),
     should_keep_other_imports,
     r#"import sz from 'some_import'"#,
     r#"import sz from 'some_import'"#
@@ -244,7 +257,7 @@ test_inline!(
 #[cfg(test)]
 test_inline!(
     Default::default(),
-    |_| as_folder(TransformVisitor::default()),
+    |_| tr(),
     should_replace_tagged_template_literals,
     r#"
         import sz from 'eszett'
@@ -258,7 +271,7 @@ test_inline!(
 #[cfg(test)]
 test_inline!(
     Default::default(),
-    |_| as_folder(TransformVisitor::default()),
+    |_| tr(),
     should_work_with_empty_template_literal,
     r#"
         import sz from 'eszett'
@@ -272,7 +285,7 @@ test_inline!(
 #[cfg(test)]
 test_inline!(
     Default::default(),
-    |_| as_folder(TransformVisitor::default()),
+    |_| tr(),
     should_leave_non_sz_template_literals_alone,
     r#"
         import sz from 'eszett'
@@ -286,7 +299,7 @@ test_inline!(
 #[cfg(test)]
 test_inline!(
     Default::default(),
-    |_| as_folder(TransformVisitor::default()),
+    |_| tr(),
     should_create_a_new_scope_for_each_root_function,
     r#"
         import sz from 'eszett'
@@ -310,7 +323,7 @@ test_inline!(
 #[cfg(test)]
 test_inline!(
     Default::default(),
-    |_| as_folder(TransformVisitor::default()),
+    |_| tr(),
     should_use_the_same_scope_throughout_a_function_body,
     r#"
         import sz from 'eszett'
@@ -330,7 +343,7 @@ test_inline!(
 #[cfg(test)]
 test_inline!(
     Default::default(),
-    |_| as_folder(TransformVisitor::default()),
+    |_| tr(),
     should_use_the_same_scope_in_lexically_nested_functions,
     r#"
         import sz from 'eszett'
@@ -354,7 +367,7 @@ test_inline!(
 #[cfg(test)]
 test_inline!(
     Default::default(),
-    |_| as_folder(TransformVisitor::default()),
+    |_| tr(),
     should_create_a_new_scope_for_each_root_arrow_function,
     r#"
         import sz from 'eszett'
@@ -372,7 +385,7 @@ test_inline!(
 #[cfg(test)]
 test_inline!(
     Default::default(),
-    |_| as_folder(TransformVisitor::default()),
+    |_| tr(),
     should_use_the_same_scope_throughout_a_arrow_function_body,
     r#"
         import sz from 'eszett'
@@ -392,7 +405,7 @@ test_inline!(
 #[cfg(test)]
 test_inline!(
     Default::default(),
-    |_| as_folder(TransformVisitor::default()),
+    |_| tr(),
     should_use_the_same_scope_in_lexically_nested_arrow_functions,
     r#"
         import sz from 'eszett'
@@ -416,7 +429,7 @@ test_inline!(
 #[cfg(test)]
 test_inline!(
     Default::default(),
-    |_| as_folder(TransformVisitor::default()),
+    |_| tr(),
     should_replace_scope_name_variable_with_current_scope,
     r#"
         import { scopeName } from 'eszett'
@@ -430,7 +443,7 @@ test_inline!(
 #[cfg(test)]
 test_inline!(
     Default::default(),
-    |_| as_folder(TransformVisitor::default()),
+    |_| tr(),
     should_replace_scope_name_variable_when_renamed_in_import,
     r#"
         import { scopeName as sc } from 'eszett'
@@ -444,7 +457,7 @@ test_inline!(
 #[cfg(test)]
 test_inline!(
     Default::default(),
-    |_| as_folder(TransformVisitor::default()),
+    |_| tr(),
     should_not_replace_other_variables_with_the_scope_name_name,
     r#"
         import { scopeName as sc } from 'eszett'
@@ -458,7 +471,7 @@ test_inline!(
 #[cfg(test)]
 test_inline!(
     Default::default(),
-    |_| as_folder(TransformVisitor::default()),
+    |_| tr(),
     should_not_replace_variables_shaddowing_scope_name,
     r#"
         import { scopeName } from 'eszett'
