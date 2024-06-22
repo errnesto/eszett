@@ -1,6 +1,6 @@
 # ß – eszett
 
-Scoped css for react – by using a unique class name per component generated at build time.
+Explicit css scopes for react – by using a unique class name per component generated at build time.
 
 ```jsx
 import sz, { scopeName } from "eszett";
