@@ -12,16 +12,16 @@ function Header() {
       <p>Subtitle</p>
 
       <style href={scopeName}>{`
-        @scope (.${scopeName}.header) {
-          :scope {
+        .${scopeName} {
+          &.header {
             background: blue;
           }
 
-          .title {
+          &.title {
             color: white;
           }
 
-          p {
+          &.header p {
             color: grey;
           }
         }
@@ -60,9 +60,10 @@ console.log("23u00ds-1");
 
 ## Without modern css
 
-Together with support for [`<style>` tags in react 19](https://react.dev/reference/react-dom/components/style) and css scoping [scope](https://developer.mozilla.org/en-US/docs/Web/CSS/@scope) the two helpers is all we need to encapsulate our styles inside our components.
+Together with support for [`<style>` tags in react 19](https://react.dev/reference/react-dom/components/style) and css scoping [css nesting](https://developer.mozilla.org/en-US/docs/Web/CSS/Nesting_selector) the two helpers is all we need to encapsulate our styles inside our components.
 
-But since scoped css has only limited availability you can also write classic css:
+You could use something like [postcss-preset-env](https://preset-env.cssdb.org/features/#nesting-rules)
+or you can also write classic css:
 
 ```jsx
 import sz, { scopeName } from "eszett";
