@@ -21,7 +21,7 @@ function WithCSSNesting() {
             color: white;
           }
 
-          & p {
+          &.header p {
             color: grey;
           }
         }
@@ -35,16 +35,16 @@ eszett generates a unique id for each react component and gives you two helper m
 
 ### `sz` tagged template literal
 
-```js
+```jsx
 // this input
 import sz from "eszett";
-const className = sz`header`;
+<div className={sz`header`} />;
 
 // will be tranformed to:
-const className = "23u00ds-1 " + `header`;
+<div className={"23u00ds-1 " + `header`} />;
 ```
 
-### `scopeName` Direct access to the generated scope name
+### `scopeName` variable
 
 ```js
 // this input
@@ -72,6 +72,7 @@ function WithCSSScope() {
     <header className={sz`header`}>
       <h2 className={title}>Hello World</h2>
       <p>Subtitle</p>
+
       <style href={scopeName}>{`
         @scope (${scopeName}.header) {
           :scope {
@@ -102,6 +103,7 @@ function WithoutModernCss() {
     <header className={sz`header`}>
       <h2 className={title}>Hello World</h2>
       <p>Subtitle</p>
+
       <style href={scopeName}>{`
         ${scopeName}.header {
           background: blue;
@@ -111,7 +113,7 @@ function WithoutModernCss() {
           color: white;
         }
 
-        ${scopeName} p {
+        ${scopeName}.header p {
           color: grey;
         }
       `}</style>
@@ -122,8 +124,10 @@ function WithoutModernCss() {
 
 ### Styling children
 
-Since you activly need to add the scope to the classes, you can style children,
-as you would with plain css, but if you want to pass the scoped classed down you can also do that:
+Since you explictly need to add the scope to all the classes, you can set global styles
+simply by omitting the sz helpers.
+
+But if you want to pass the scoped classed down you can also do that:
 
 ```jsx
 import sz, { scopeName } from "eszett";
@@ -131,7 +135,9 @@ import sz, { scopeName } from "eszett";
 function PassClassNameToChildren() {
   return (
     <>
-      <Link className={sz`link`} href='/home'>Home</Link>
+      <Link className={sz`link`} href="/home">
+        Home
+      </Link>
       <style href={scopeName}>{`
         ${scopeName}.link {
           color: red;
