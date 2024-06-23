@@ -14,7 +14,6 @@ fn transform() -> impl Fold {
     let filepath = "file.js";
     chain!(
         resolver(Mark::new(), Mark::new(), false),
-        // Most of transform does not care about globals so it does not need `SyntaxContext`
         as_folder(transformer(filepath))
     )
 }
