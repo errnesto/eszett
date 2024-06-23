@@ -329,7 +329,6 @@ dependencies = [
  "regex",
  "serde",
  "swc_core",
- "tracing",
 ]
 
 [[package]]
@@ -1255,6 +1254,7 @@ dependencies = [
  "swc_plugin",
  "swc_plugin_macro",
  "swc_plugin_proxy",
+ "testing",
  "vergen",
 ]
 

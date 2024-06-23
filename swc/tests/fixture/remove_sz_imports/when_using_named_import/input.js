@@ -1,0 +1,1 @@
+import { scopeName } from 'eszett'
