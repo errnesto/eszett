@@ -1,4 +1,4 @@
-# ß – eszett
+# *ß* – eszett
 
 Explicit css scopes for react – by using a unique class name per component generated at build time.
 
