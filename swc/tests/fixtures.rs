@@ -9,6 +9,14 @@ use swc_core::{
     },
     testing,
 };
+use swc_ecma_parser::{Syntax, EsConfig};
+
+fn syntax() -> Syntax {
+    Syntax::Es(EsConfig {
+        jsx: true,
+        ..Default::default()
+    })
+}
 
 fn transform() -> impl Fold {
     let project_root = Path::new("project");
@@ -23,7 +31,7 @@ fn transform() -> impl Fold {
 fn fix(input: PathBuf) {
     let output = input.with_file_name("output.js");
     test_fixture(
-        Default::default(),
+        syntax(),
         &|_| transform(),
         &input,
         &output,
