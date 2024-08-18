@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use eszett::transformer;
 use swc_core::{
@@ -11,10 +11,11 @@ use swc_core::{
 };
 
 fn transform() -> impl Fold {
-    let filepath = "file.js";
+    let project_root = Path::new("project");
+    let filepath = Path::new("project/file.js");
     chain!(
         resolver(Mark::new(), Mark::new(), false),
-        as_folder(transformer(filepath))
+        as_folder(transformer(project_root, filepath))
     )
 }
 

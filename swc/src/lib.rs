@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{hash::{DefaultHasher, Hash, Hasher}, path::Path};
 use swc_core::{
     ecma::{
         ast::Program,
@@ -11,8 +11,16 @@ use swc_core::{
 };
 mod transform;
 
-pub fn transformer(filepath: impl Into<String>) -> impl VisitMut {
-    transform::Eszett::new(filepath)
+pub fn transformer(working_directory: &Path, filename: &Path) -> impl VisitMut {
+    let relative_path = match filename.strip_prefix(&working_directory) {
+        Ok(s) => s,
+        Err(_) => filename,
+    };
+    let mut hasher = DefaultHasher::new();
+    relative_path.hash(&mut hasher);
+    let filename_hash = hasher.finish().to_string();
+
+    transform::Eszett::new(filename_hash)
 }
 
 #[plugin_transform]
@@ -28,14 +36,11 @@ pub fn process_transform(
         Some(string) => string,
         None => String::from(""),
     };
-    let project_path = Path::new(&working_directory);
-    let file_path = Path::new(&filename);
-    let relative_path = match file_path.strip_prefix(&project_path) {
-        Ok(s) => s,
-        Err(_) => file_path,
-    };
 
-    program.visit_mut_with(&mut transformer(relative_path.display().to_string()));
+    program.visit_mut_with(&mut transformer(
+        Path::new(&working_directory),
+        Path::new(&filename),
+    ));
 
     return program;
 }

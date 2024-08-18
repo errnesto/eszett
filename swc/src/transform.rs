@@ -1,4 +1,3 @@
-use regex::Regex;
 use swc_core::{
     atoms::Atom,
     common::{util::take::Take, DUMMY_SP},
@@ -12,7 +11,7 @@ const IMPORT_NAME: &str = "eszett";
 const SCOPE_NAME_NAME: &str = "scopeName";
 
 pub struct Eszett {
-    filepath: String,
+    filepath_hash: String,
     sz_identifier: Option<Id>,
     scope_name_identifier: Option<Id>,
     scope_counter: usize,
@@ -22,7 +21,7 @@ pub struct Eszett {
 impl Eszett {
     pub fn new(filepath: impl Into<String>) -> Self {
         Self {
-            filepath: filepath.into(),
+            filepath_hash: filepath.into(),
             sz_identifier: None,
             scope_name_identifier: None,
             scope_counter: 0,
@@ -31,14 +30,12 @@ impl Eszett {
     }
 
     fn get_scope_name(&self) -> String {
-        let re = Regex::new(r"[^a-zA-Z0-9_-]").unwrap();
-        let prefix = re.replace_all(&self.filepath, "_");
         let current_scope = match self.current_scope {
             Some(current_scope) => current_scope,
             None => 0,
         };
 
-        return format!("ß-{}-{}", prefix, current_scope);
+        return format!("sz-{}-{}", self.filepath_hash, current_scope);
     }
 
     fn visit_mut_children_providing_current_scope(&mut self, node: &mut dyn VisitMutWith<Self>) {

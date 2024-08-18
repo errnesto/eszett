@@ -1,1 +1,1 @@
-const hui = "ß-file_js-0 " + `my-class`
+const hui = "sz-1140706008469277499-0 " + `my-class`

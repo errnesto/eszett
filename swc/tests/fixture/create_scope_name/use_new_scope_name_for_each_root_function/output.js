@@ -1,6 +1,6 @@
 function one() {
-  const hui = "ß-file_js-1 " + `my-class`
+  const hui = "sz-1140706008469277499-1 " + `my-class`
 }
 function two() {
-  const hui = "ß-file_js-2 " + `my-class`
+  const hui = "sz-1140706008469277499-2 " + `my-class`
 }
