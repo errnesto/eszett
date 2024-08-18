@@ -1,3 +1,4 @@
+use std::path::Path;
 use swc_core::{
     ecma::{
         ast::Program,
@@ -19,30 +20,22 @@ pub fn process_transform(
     mut program: Program,
     metadata: TransformPluginProgramMetadata,
 ) -> Program {
-    let filepath = match metadata.get_context(&TransformPluginMetadataContextKind::Filename) {
-        Some(s) => s,
+    let working_directory = match metadata.get_context(&TransformPluginMetadataContextKind::Cwd) {
+        Some(string) => string,
         None => String::from(""),
     };
-    let config = metadata
-        .get_transform_plugin_config();
-        // .get("root")
-        // .and_then(|value| value.as_str())
-        // .map(PathBuf::from)
-        // .unwrap_or_else(|| {
-        //     // Default to the current directory if not specified
-        //     std::env::current_dir().expect("Failed to get current directory")
-        // });
+    let filename = match metadata.get_context(&TransformPluginMetadataContextKind::Filename) {
+        Some(string) => string,
+        None => String::from(""),
+    };
+    let project_path = Path::new(&working_directory);
+    let file_path = Path::new(&filename);
+    let relative_path = match file_path.strip_prefix(&project_path) {
+        Ok(s) => s,
+        Err(_) => file_path,
+    };
 
-    println!("------------------------");
-    println!("{:?}", config);
-    println!("------------------------");
-
-    // let relative_path = match filepath.strip_prefix(&project_root) {
-    //     Some(s) => s,
-    //     None => &filepath,
-    // };
-
-    program.visit_mut_with(&mut transformer(filepath));
+    program.visit_mut_with(&mut transformer(relative_path.display().to_string()));
 
     return program;
 }
