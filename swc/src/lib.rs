@@ -10,6 +10,7 @@ use swc_core::{
     },
 };
 mod transform;
+mod utils;
 
 pub fn transformer(working_directory: &Path, filename: &Path) -> impl VisitMut {
     let relative_path = match filename.strip_prefix(&working_directory) {

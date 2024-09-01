@@ -7,6 +7,8 @@ use swc_core::{
     },
 };
 
+use crate::utils::{add, and, ident, is_capitalized, not_eq, or, string_literal_expr};
+
 const IMPORT_NAME: &str = "eszett";
 const SCOPE_NAME_NAME: &str = "scopeName";
 
@@ -101,6 +103,128 @@ impl Eszett {
         let scope_name = self.get_scope_name();
         *expression = Expr::Lit(scope_name.into());
     }
+
+    fn get_existing_class_name(
+        el: &JSXOpeningElement,
+    ) -> (Option<Expr>, Option<usize>, Option<usize>) {
+        let mut spreads = vec![];
+        let mut class_name_expr = None;
+        let mut existing_index = None;
+        let mut existing_spread_index = None;
+        for i in (0..el.attrs.len()).rev() {
+            match &el.attrs[i] {
+                JSXAttrOrSpread::JSXAttr(JSXAttr {
+                    name: JSXAttrName::Ident(Ident { sym, .. }),
+                    value,
+                    ..
+                }) => {
+                    if sym == "className" {
+                        existing_index = Some(i);
+                        class_name_expr = match value {
+                            Some(JSXAttrValue::Lit(str_lit)) => Some(Expr::Lit(str_lit.clone())),
+                            Some(JSXAttrValue::JSXExprContainer(JSXExprContainer {
+                                expr: JSXExpr::Expr(expr),
+                                ..
+                            })) => Some(*expr.clone()),
+                            None => None,
+                            _ => None,
+                        };
+                        break;
+                    }
+                }
+                JSXAttrOrSpread::SpreadElement(SpreadElement { expr, .. }) => {
+                    if let Expr::Object(ObjectLit { props, .. }) = &**expr {
+                        let mut has_spread = false;
+                        let mut has_class_name = false;
+                        for j in 0..props.len() {
+                            if let PropOrSpread::Prop(prop) = &props[j] {
+                                if let Prop::KeyValue(KeyValueProp {
+                                    key: PropName::Ident(Ident { sym, .. }),
+                                    value,
+                                }) = &**prop
+                                {
+                                    if sym == "className" {
+                                        has_class_name = true;
+                                        class_name_expr = Some(*value.clone());
+                                        if props.len() == 1 {
+                                            existing_spread_index = Some(i);
+                                        }
+                                    }
+                                }
+                            } else {
+                                has_spread = true;
+                            }
+                        }
+                        if has_class_name {
+                            break;
+                        }
+                        if !has_spread {
+                            continue;
+                        }
+                    }
+
+                    let valid_spread = matches!(&**expr, Expr::Member(_) | Expr::Ident(_));
+
+                    if valid_spread {
+                        let member_dot_name = Expr::Member(MemberExpr {
+                            obj: Box::new(*expr.clone()),
+                            prop: MemberProp::Ident(ident("className")),
+                            span: DUMMY_SP,
+                        });
+                        // `${name} && ${name}.className != null && ${name}.className`
+                        spreads.push(and(
+                            and(
+                                *expr.clone(),
+                                not_eq(
+                                    member_dot_name.clone(),
+                                    Expr::Lit(Lit::Null(Null { span: DUMMY_SP })),
+                                ),
+                            ),
+                            member_dot_name.clone(),
+                        ));
+                    }
+                }
+                _ => {}
+            };
+        }
+
+        let spread_expr = match spreads.len() {
+            0 => None,
+            _ => Some(join_spreads(spreads)),
+        };
+
+        let class_name_expr = match class_name_expr {
+            Some(e @ Expr::Tpl(_) | e @ Expr::Lit(Lit::Str(_))) => Some(e),
+            None => None,
+            _ => Some(or(class_name_expr.unwrap(), string_literal_expr(""))),
+        };
+
+        let existing_class_name_expr = match (spread_expr, class_name_expr) {
+            (Some(spread_expr), Some(class_name_expr)) => Some(or(spread_expr, class_name_expr)),
+            (Some(spread_expr), None) => Some(or(spread_expr, string_literal_expr(""))),
+            (None, Some(class_name_expr)) => Some(class_name_expr),
+            _ => None,
+        };
+
+        (
+            existing_class_name_expr,
+            existing_index,
+            existing_spread_index,
+        )
+    }
+}
+
+fn join_spreads(spreads: Vec<Expr>) -> Expr {
+    let mut new_expr = spreads[0].clone();
+    for i in spreads.iter().skip(1) {
+        new_expr = Expr::Bin(BinExpr {
+            op: op!("||"),
+            left: Box::new(new_expr.clone()),
+            right: Box::new(i.clone()),
+            span: DUMMY_SP,
+        })
+    }
+    new_expr
 }
 
 impl VisitMut for Eszett {
@@ -168,5 +292,42 @@ impl VisitMut for Eszett {
         expression.visit_mut_children_with(self);
         self.replace_sz_identifier_with_scope_name(expression);
         self.replace_scope_name_identifier_with_scope_name(expression);
+    }
+
+    fn visit_mut_jsx_opening_element(&mut self, jsx_opening_element: &mut JSXOpeningElement) {
+        jsx_opening_element.visit_mut_children_with(self);
+
+        if let JSXElementName::Ident(Ident { sym, span, .. }) = &jsx_opening_element.name {
+            if sym != "style" && (!is_capitalized(sym)) {
+                let (existing_class_name, existing_index, existing_spread_index) =
+                    Eszett::get_existing_class_name(&jsx_opening_element);
+
+                let scope_name_expression = Expr::Lit(self.get_scope_name().into());
+                let new_class_name = match existing_class_name {
+                    Some(existing_class_name) => add(
+                        add(scope_name_expression, string_literal_expr(" ")),
+                        existing_class_name,
+                    ),
+                    None => scope_name_expression,
+                };
+
+                let class_name_attr = JSXAttrOrSpread::JSXAttr(JSXAttr {
+                    span: DUMMY_SP,
+                    name: JSXAttrName::Ident(ident("className")),
+                    value: Some(JSXAttrValue::JSXExprContainer(JSXExprContainer {
+                        expr: JSXExpr::Expr(Box::new(new_class_name)),
+                        span: DUMMY_SP,
+                    })),
+                });
+                jsx_opening_element.attrs.push(class_name_attr);
+
+                if let Some(existing_spread_index) = existing_spread_index {
+                    jsx_opening_element.attrs.remove(existing_spread_index);
+                }
+                if let Some(existing_index) = existing_index {
+                    jsx_opening_element.attrs.remove(existing_index);
+                }
+            }
+        }
     }
 }

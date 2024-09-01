@@ -51,7 +51,6 @@ export default () => {
       <Element />
       <Element className="test" />
       <Element {...props} />
-      <style jsx>{"div { color: red }"}</style>
     </div>
   );
 };
