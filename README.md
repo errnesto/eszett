@@ -5,6 +5,7 @@ Explicit css scopes for react – by using a unique css class per component gene
 # TODO
 - [ ] update imports to prioritize scopeName and match new readme
 - [ ] dont transform classNames in files that don't import sz
+- [ ] maybe add a custom style component
 
 ```jsx
 import eszett from "eszett";
