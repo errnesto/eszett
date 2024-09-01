@@ -1,6 +1,8 @@
+use std::mem::take;
+
 use swc_core::{
     atoms::Atom,
-    common::{util::take::Take, DUMMY_SP},
+    common::{collections::AHashSet, util::take::Take, DUMMY_SP},
     ecma::{
         ast::*,
         visit::{VisitMut, VisitMutWith},
@@ -18,6 +20,7 @@ pub struct Eszett {
     scope_name_identifier: Option<Id>,
     scope_counter: usize,
     current_scope: Option<usize>,
+    nearest_bindings: AHashSet<Id>,
 }
 
 impl Eszett {
@@ -28,6 +31,7 @@ impl Eszett {
             scope_name_identifier: None,
             scope_counter: 0,
             current_scope: None,
+            nearest_bindings: Default::default(),
         }
     }
 
@@ -42,6 +46,9 @@ impl Eszett {
 
     fn visit_mut_children_providing_current_scope(&mut self, node: &mut dyn VisitMutWith<Self>) {
         let mut did_create_new_scope = false;
+        let surrounding_bindings = take(&mut self.nearest_bindings);
+        self.nearest_bindings.extend(collect_decls(&declaration));
+
         if self.current_scope == None {
             self.scope_counter += 1;
             self.current_scope = Some(self.scope_counter);
@@ -53,6 +60,7 @@ impl Eszett {
         if did_create_new_scope {
             self.current_scope = None
         }
+        self.nearest_bindings = surrounding_bindings;
     }
 
     fn replace_sz_identifier_with_scope_name(&mut self, expression: &mut Expr) {
@@ -279,6 +287,18 @@ impl VisitMut for Eszett {
         });
     }
 
+    fn visit_mut_binding_ident(&mut self, ident: &mut BindingIdent) {
+        if self.current_scope.is_some() {
+            self.nearest_bindings.insert(ident.id.to_id());
+        }
+    }
+
+    fn visit_mut_assign_pat_prop(&mut self, asign_pat_prop: &mut AssignPatProp) {
+        if self.current_scope.is_some() {
+            self.nearest_bindings.insert(asign_pat_prop.key.to_id());
+        }
+    }
+
     fn visit_mut_fn_decl(&mut self, declaration: &mut FnDecl) {
         self.visit_mut_children_providing_current_scope(declaration);
     }
@@ -297,8 +317,11 @@ impl VisitMut for Eszett {
     fn visit_mut_jsx_opening_element(&mut self, jsx_opening_element: &mut JSXOpeningElement) {
         jsx_opening_element.visit_mut_children_with(self);
 
-        if let JSXElementName::Ident(Ident { sym, span, .. }) = &jsx_opening_element.name {
-            if sym != "style" && (!is_capitalized(sym)) {
+        if let JSXElementName::Ident(identifier) = &jsx_opening_element.name {
+            if identifier.sym != "style"
+                && (!is_capitalized(&identifier.sym)
+                    || self.nearest_bindings.contains(&identifier.to_id()))
+            {
                 let (existing_class_name, existing_index, existing_spread_index) =
                     Eszett::get_existing_class_name(&jsx_opening_element);
 
