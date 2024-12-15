@@ -18,15 +18,15 @@ function Header() {
 
       <style href={eszett}>{`
         .${eszett} {
-          &.header {
+          &header {
             background: blue;
           }
 
-          &.title {
+          &h2 {
             color: white;
           }
 
-          &.header p {
+          &p {
             color: grey;
           }
         }
