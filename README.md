@@ -3,7 +3,6 @@
 Explicit css scopes for react – by using a unique css class per component generated at build time.
 
 # TODO
-- [ ] update imports to prioritize scopeName and match new readme
 - [ ] dont transform classNames in files that don't import sz
 - [ ] maybe add a custom style component
 
