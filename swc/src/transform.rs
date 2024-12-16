@@ -47,7 +47,7 @@ impl Eszett {
     fn visit_mut_children_providing_current_scope(&mut self, node: &mut dyn VisitMutWith<Self>) {
         let mut did_create_new_scope = false;
         let surrounding_bindings = take(&mut self.nearest_bindings);
-        self.nearest_bindings.extend(collect_decls(&declaration));
+        // self.nearest_bindings.extend(collect_decls(&declaration));
 
         if self.current_scope == None {
             self.scope_counter += 1;
