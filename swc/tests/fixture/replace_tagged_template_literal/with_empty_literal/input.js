@@ -1,2 +1,2 @@
-import sz from 'eszett'
+import { sz } from 'eszett'
 const hui = sz``

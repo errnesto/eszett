@@ -12,11 +12,11 @@ use swc_core::{
 use crate::utils::{add, and, ident, is_capitalized, not_eq, or, string_literal_expr};
 
 const IMPORT_NAME: &str = "eszett";
-const SCOPE_NAME_NAME: &str = "scopeName";
+const TEMPLATE_LITERAL_TAG_NAME: &str = "sz";
 
 pub struct Eszett {
     filepath_hash: String,
-    sz_identifier: Option<Id>,
+    template_tag_identifier: Option<Id>,
     scope_name_identifier: Option<Id>,
     scope_counter: usize,
     current_scope: Option<usize>,
@@ -27,7 +27,7 @@ impl Eszett {
     pub fn new(filepath: impl Into<String>) -> Self {
         Self {
             filepath_hash: filepath.into(),
-            sz_identifier: None,
+            template_tag_identifier: None,
             scope_name_identifier: None,
             scope_counter: 0,
             current_scope: None,
@@ -64,8 +64,8 @@ impl Eszett {
     }
 
     fn replace_sz_identifier_with_scope_name(&mut self, expression: &mut Expr) {
-        let sz_identifier = match &self.sz_identifier {
-            Some(sz_identifier) => sz_identifier,
+        let template_tag_identifier = match &self.template_tag_identifier {
+            Some(template_tag_identifier) => template_tag_identifier,
             None => return,
         };
         let tagged_template = match expression.as_tagged_tpl() {
@@ -77,7 +77,7 @@ impl Eszett {
             None => return,
         };
 
-        if tag.to_id() != *sz_identifier {
+        if tag.to_id() != *template_tag_identifier {
             return;
         }
 
@@ -246,27 +246,28 @@ impl VisitMut for Eszett {
         }
 
         for specifier in &import_decl.specifiers {
-            // store sz identifier
+            // store scope name identifier from default import expression
+            // e.g. `import eszett from "eszett"`
             if let ImportSpecifier::Default(default_import) = specifier {
-                self.sz_identifier = Some(default_import.local.to_id())
+                self.scope_name_identifier = Some(default_import.local.to_id())
             }
 
-            // store scope name identifier
+            // store template tag identifier
             if let ImportSpecifier::Named(named_import) = specifier {
                 let import_identifier = &named_import.local;
                 let export_name: &Atom = match &named_import.imported {
-                    // e.g. `import { "scopeName" as prefix } from "eszett"``
+                    // e.g. `import { "sz" as prefix } from "eszett"``
                     Some(ModuleExportName::Str(imported)) => &imported.value,
-                    // e.g. `import { scopeName as prefix } from "eszett"`
+                    // e.g. `import { sz as prefix } from "eszett"`
                     // then we find the export name in here
                     Some(ModuleExportName::Ident(imported)) => &imported.sym,
-                    // otherwise: `import { scopeName } from "eszett"`
+                    // otherwise: `import { sz } from "eszett"`
                     // we can just use the local symbol
                     None => &import_identifier.sym,
                 };
 
-                if export_name == SCOPE_NAME_NAME {
-                    self.scope_name_identifier = Some(import_identifier.to_id());
+                if export_name == TEMPLATE_LITERAL_TAG_NAME {
+                    self.template_tag_identifier = Some(import_identifier.to_id());
                 }
             }
         }

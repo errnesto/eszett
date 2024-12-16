@@ -1,1 +1,1 @@
-import sz, { scopeName as foo } from 'eszett'
+import eszett, { sz as foo } from 'eszett'

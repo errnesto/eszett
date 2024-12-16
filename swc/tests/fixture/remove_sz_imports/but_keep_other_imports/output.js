@@ -1,1 +1,1 @@
-import sz from 'some_import'
+import eszett from 'some_import'

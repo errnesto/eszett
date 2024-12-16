@@ -1,5 +1,5 @@
-import { scopeName } from 'eszett'
+import eszett from 'eszett'
 function hui() {
-    const scopeName = 'lorem'
-    const bar = scopeName
+    const eszett = 'lorem'
+    const bar = eszett
 }

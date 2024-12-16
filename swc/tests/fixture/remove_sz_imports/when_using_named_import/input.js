@@ -1,1 +1,1 @@
-import { scopeName } from 'eszett'
+import { sz } from 'eszett'

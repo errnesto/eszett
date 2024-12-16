@@ -1,5 +1,6 @@
-export default function sz([ns]: TemplateStringsArray): string {
+export function sz([ns]: TemplateStringsArray): string {
   return "";
 }
 
-export const scopeName: string = ''
+const eszett: string = "";
+export default eszett;
