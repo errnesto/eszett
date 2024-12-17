@@ -1,17 +1,16 @@
 use swc_core::{
     common::DUMMY_SP,
-    ecma::ast::{BinExpr, BinaryOp, Expr, Ident},
+    ecma::ast::{BinExpr, BinaryOp, Expr, IdentName},
 };
 
 pub fn string_literal_expr(s: &str) -> Expr {
     s.replace("\\`", "`").into()
 }
 
-pub fn ident(s: &str) -> Ident {
-    Ident {
+pub fn ident(s: &str) -> IdentName {
+    IdentName {
         sym: s.into(),
         span: DUMMY_SP,
-        optional: false,
     }
 }
 

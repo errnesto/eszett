@@ -12,9 +12,9 @@ lto = true
 [dependencies]
 regex = "1.10.4"
 serde = "1"
-swc_core = { version = "0.92.*", features = ["ecma_plugin_transform", "testing"] }
-swc_ecma_parser = "0.144.1"
-swc_ecma_utils = "0.134.2"
+swc_core = { version = "5.0.*", features = ["ecma_plugin_transform", "testing"] }
+swc_ecma_parser = "5.0.0"
+swc_ecma_utils = "5.0.0"
 
 # .cargo/config defines few alias to build plugin.
 # cargo build-wasi generates wasm-wasi32 binary

@@ -122,7 +122,7 @@ impl Eszett {
         for i in (0..el.attrs.len()).rev() {
             match &el.attrs[i] {
                 JSXAttrOrSpread::JSXAttr(JSXAttr {
-                    name: JSXAttrName::Ident(Ident { sym, .. }),
+                    name: JSXAttrName::Ident(IdentName { sym, .. }),
                     value,
                     ..
                 }) => {
@@ -147,7 +147,7 @@ impl Eszett {
                         for j in 0..props.len() {
                             if let PropOrSpread::Prop(prop) = &props[j] {
                                 if let Prop::KeyValue(KeyValueProp {
-                                    key: PropName::Ident(Ident { sym, .. }),
+                                    key: PropName::Ident(IdentName { sym, .. }),
                                     value,
                                 }) = &**prop
                                 {
