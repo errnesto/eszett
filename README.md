@@ -17,15 +17,15 @@ function Header() {
 
       <style href={eszett}>{`
         .${eszett} {
-          &header {
+          header& {
             background: blue;
           }
 
-          &h2 {
+          h2& {
             color: white;
           }
 
-          &p {
+          p& {
             color: grey;
           }
         }
