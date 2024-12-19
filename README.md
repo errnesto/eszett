@@ -15,7 +15,7 @@ function Header() {
       <h2>Hello World</h2>
       <p>Subtitle</p>
 
-      <style href={eszett}>{`
+      <style href={eszett} precedence='eszett'>{`
         .${eszett} {
           header& {
             background: blue;
