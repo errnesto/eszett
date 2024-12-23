@@ -15,6 +15,7 @@ const IMPORT_NAME: &str = "eszett";
 const TEMPLATE_LITERAL_TAG_NAME: &str = "sz";
 
 pub struct Eszett {
+    is_imported: bool,
     filepath_hash: String,
     template_tag_identifier: Option<Id>,
     scope_name_identifier: Option<Id>,
@@ -26,6 +27,7 @@ pub struct Eszett {
 impl Eszett {
     pub fn new(filepath: impl Into<String>) -> Self {
         Self {
+            is_imported: false,
             filepath_hash: filepath.into(),
             template_tag_identifier: None,
             scope_name_identifier: None,
@@ -47,7 +49,6 @@ impl Eszett {
     fn visit_mut_children_providing_current_scope(&mut self, node: &mut dyn VisitMutWith<Self>) {
         let mut did_create_new_scope = false;
         let surrounding_bindings = take(&mut self.nearest_bindings);
-        // self.nearest_bindings.extend(collect_decls(&declaration));
 
         if self.current_scope == None {
             self.scope_counter += 1;
@@ -245,6 +246,8 @@ impl VisitMut for Eszett {
             return;
         }
 
+        self.is_imported = true;
+
         for specifier in &import_decl.specifiers {
             // store scope name identifier from default import expression
             // e.g. `import eszett from "eszett"`
@@ -289,33 +292,49 @@ impl VisitMut for Eszett {
     }
 
     fn visit_mut_binding_ident(&mut self, ident: &mut BindingIdent) {
-        if self.current_scope.is_some() {
+        if self.is_imported && self.current_scope.is_some() {
             self.nearest_bindings.insert(ident.id.to_id());
         }
     }
 
     fn visit_mut_assign_pat_prop(&mut self, asign_pat_prop: &mut AssignPatProp) {
-        if self.current_scope.is_some() {
+        if self.is_imported && self.current_scope.is_some() {
             self.nearest_bindings.insert(asign_pat_prop.key.to_id());
         }
     }
 
     fn visit_mut_fn_decl(&mut self, declaration: &mut FnDecl) {
+        if !self.is_imported {
+            return;
+        }
+
         self.visit_mut_children_providing_current_scope(declaration);
     }
     fn visit_mut_arrow_expr(&mut self, arrow_expr: &mut ArrowExpr) {
+        if !self.is_imported {
+            return;
+        }
+
         self.visit_mut_children_providing_current_scope(arrow_expr)
     }
 
     // replace all uses of sz indentifier as a template tag
     // with a unique scope string prefixing the template literal
     fn visit_mut_expr(&mut self, expression: &mut Expr) {
+        if !self.is_imported {
+            return;
+        }
+
         expression.visit_mut_children_with(self);
         self.replace_sz_identifier_with_scope_name(expression);
         self.replace_scope_name_identifier_with_scope_name(expression);
     }
 
     fn visit_mut_jsx_opening_element(&mut self, jsx_opening_element: &mut JSXOpeningElement) {
+        if !self.is_imported {
+            return;
+        }
+
         jsx_opening_element.visit_mut_children_with(self);
 
         if let JSXElementName::Ident(identifier) = &jsx_opening_element.name {
