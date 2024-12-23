@@ -209,6 +209,10 @@ import { sz } from "eszett";
 <Link className={"23u00ds-1" + " " + `header`} />;
 ```
 
+## Plans
+
+While I like the explicitness of the scoping, in practice it’s easy to accidentally create global selectors. In the future, I plan to enhance eszett by automatically adding the scope and introducing a `:global()` selector to opt out of scoping, making the process even simpler.
+
 ## Why eszett?  
 
 I wanted a name that could be shortened to two letters (sz), representing "scoped CSS." I did not like my initial ideas, `sc` or `sx`, but then I thought of the German letter ß (eszett), which, to me, could be what it sounds like when you scramble "scope", "css" and "styles" together. That’s how I landed on the name.
