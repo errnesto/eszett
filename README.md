@@ -1,8 +1,8 @@
-# _ß_ – eszett
+# _ß_ – eszett  
 
-**Explicit css scopes for react**
+**Explicit CSS Scopes for React**  
 
-Inspired by styled-jsx. But build time only, so it works with server components.
+Inspired by `styled-jsx`, but a build-time only plugin, making it compatible with server components.  
 
 ```jsx
 import eszett from "eszett";
@@ -11,7 +11,6 @@ async function Header() {
   return (
     <div className='header'>
       <h2>Hello World</h2>
-
       <style href={eszett} precedence="eszett">{`
         .${eszett} {
           &.header {
@@ -28,102 +27,111 @@ async function Header() {
 }
 ```
 
-## Install
+## Installation  
 
-```
+```bash
 npm install eszett
 ```
 
-`eszett` is an [swc](https://swc.rs/docs/usage/swc-loader) plugin – so it should work wherever swc works. But I wrote this so I can use it for my nextjs projects so it is only tested with nextjs.
+`eszett` is an [SWC](https://swc.rs/docs/usage/swc-loader) plugin, so it should work wherever SWC works. However, it was primarily developed for use in Next.js projects and has only been tested with Next.js.  
 
-### With NextJs (requires nextjs 15)
+### With Next.js (requires Next.js 15+ and react 19+)  
 
-In nextjs you can add it to your `next.config.js`:
+Add it to your `next.config.js`:  
 
 ```js
-// next.config.js
-module.exports = {
-  …
-  experimental: {
-    swcPlugins: [["eszett/swc", {}]]
-  }
+// next.config.js  
+module.exports = {  
+  …,  
+  experimental: {  
+    swcPlugins: [["eszett/swc", {}]],  
+  },  
+};
+``` 
+
+## Usage  
+
+### Scoping Styles to a Component  
+
+When you import `eszett`, it automatically adds a unique class name to your HTML elements (similar to `styled-jsx`). You can then style your component using a `<style>` tag.  
+
+To explicitly scope styles, include the `eszett` variable in your selector:  
+
+```jsx
+import eszett from "eszett";
+
+async function Header() {
+  return (
+    <header className='header'>
+      <style>
+        .${eszett}.header {
+          background-color: blue;
+        }
+      </style>
+    </header>
+  )
 }
 ```
 
-## Usage
-
-### Scope styles to a component
-
-When you import eszett it will automatically add a unique class name to your html elements (Similar to the way styled-jsx works).
-You can then style your component by adding a `<style></style>` tag to it.
-
-Styles are not scoped by default but you have to explicitly scope them by adding the eszett scope to the selector:
+Using [CSS Nesting](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_nesting/Using_CSS_nesting) can make your styles more concise:  
 
 ```jsx
-import eszett from 'eszett'
+import eszett from "eszett";
 
-…
+async function Header() {
+  return (
+    <header className='header'>
+      <h2 className='title'>Hello World</h2>
+      <style>
+        .${eszett} {
+          &.header {
+            background-color: blue;
+          }
 
-<style>
-  .${eszett}.header {
-    background-color: blue;
-  }
-</style>
+          &.title {
+            color: white;
+          }
+        }
+      </style>
+    </header>
+  )
+}
 ```
 
-You can also use [css nesting](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_nesting/Using_CSS_nesting) to save some typing:
+### Styling Nested Components  
+
+Like `styled-jsx`, `eszett` only adds class names to native HTML elements. It does not automatically add a `className` prop to imported components like `next/link`.  
+
+To scope styles for such components, use the `sz` tagged template literal:  
 
 ```jsx
-import eszett from 'eszett'
-
-…
-
-<style>
-  .${eszett} {
-    &.header {
-      background-color: blue;
-    }
-
-    &.title {
-      color: white;
-    }
-  }
-</style>
-```
-
-### Styling nested components
-
-Like styled-jsx, eszett will only add class names to native html elements or locally defined elements. But it will not automatically add a `className` prop to imported Components like `next/link`. But you can tag the class name with the `sz` helper to add scoped class names to those components too.
-
-```jsx
-import eszett, { sz } from 'eszett'
-import Link from 'next/link'
+import eszett, { sz } from "eszett";
+import Link from "next/link";
 
 async function Component() {
   return (
     <>
-      <Link href='/home' className={sz`link`} />
+      <Link href="/home" className={sz`link`} />
       <style>
         .${eszett}.link {
           color: red;
         }
       </style>
     </>
-  )
+  );
 }
 ```
 
-### Styling Children
+### Styling Children  
 
-Since you need to add "scope" explicitly, once you omit the eszett scope class your selectors become global again. This way you could write a component that applies styles to all its children without knowing what they are:
+Since scoping must be explicitly applied, omitting the `eszett` scope class will make selectors global. This allows components to apply styles to all children without having access to their class name props.  
 
 ```jsx
-import eszett, { sz } from 'eszett'
-import Link from 'next/link'
+import eszett from "eszett";
 
 async function Component(props) {
   return (
-    <div className='wrapper'>
+    <div className="wrapper">
       {props.children}
       <style>
         .${eszett}.wrapper strong {
@@ -131,79 +139,87 @@ async function Component(props) {
         }
       </style>
     </div>
-  )
+  );
 }
 ```
 
-### Deduplicating Styles (requires react 19)
+### Deduplicating Styles (requires React 19)  
 
-eszett does nothing special here but react can deduplicate styles when the style tag has a `href` and a `precedence`. (https://react.dev/reference/react-dom/components/style#special-rendering-behavior)
-
-As long as you have a single style tag in your component can use the `eszett` variable as the href:
+`eszett` leverages [React's built-in style deduplication](https://react.dev/reference/react-dom/components/style#special-rendering-behavior) for `<style>` tags with a `href` and `precedence` attribute. Use the `eszett` variable as the `href` to enable this behavior.  
 
 ```jsx
 import eszett from "eszett";
 
 async function Header() {
   return (
-    <div className='header'>
+    <div className="header">
       <style href={eszett} precedence="eszett">{`
         .${eszett}.header {
           background: blue;
         }
       `}</style>
-    </header>
+    </div>
   );
 }
 ```
 
-### How it Works
+## How it Works  
 
-eszett generates a unique id for each react component rewrites the classNames of your html elements, and gives you two helper methods to access the scope name:
+`eszett` generates a unique ID for each React component, rewrites the `className` values, and provides helper methods to access the scope name.  
 
-#### Rewriting classNames:
+### Rewriting classNames  
+
+HTML elements receive unique `className` values by combining the generated scope name and the original class names.  
 
 ```jsx
-// this input
 import "eszett";
+
 <div className="header" />;
 
-// will be tranformed to:
+// Transformed into:
+
 <div className={"23u00ds-1" + " " + "header"} />;
 ```
 
-#### Access the scope name as variable
+### Accessing the Scope Name  
+
+The `eszett` variable provides access to the unique scope name, which is derived from hashing the file path and incrementing a counter for each top-level function.  
 
 ```js
-// this input
 import eszett from "eszett";
+
 console.log(eszett);
 
-// will be transfomed to to:
+// Transformed into:
+
 console.log("23u00ds-1");
 ```
 
-#### `sz` tagged template literal
+### Tagged Template Literal  
+
+The `sz` helper applies the scoped class name to components that do not automatically receive one.  
 
 ```jsx
-// this input
 import { sz } from "eszett";
+
 <Link className={sz`header`} />;
 
-// will be tranformed to:
+// Transformed into:
+
 <Link className={"23u00ds-1" + " " + `header`} />;
 ```
 
-> The eszett scope name is generated by hashing the file path of the component and incrementing a counter
-> for each top level function in each file
+## Why eszett?  
 
-Together with support for [`<style>` tags in react 19](https://react.dev/reference/react-dom/components/style) this is all we need to encapsulate our styles inside our components.
+I wanted a name that could be shortened to two letters (sz), representing "scoped CSS." I did not like my initial ideas, `sc` or `sx`, but then I thought of the German letter ß (eszett), which, to me, could be what it sounds like when you scramble "scope", "css" and "styles" together. That’s how I landed on the name.
 
-Since the scoping is very explicit you can decide for yourself if you use css nesting or css scope or just always write `.${eszett}.title` in your selectors. Maybe in the future I will update this to automatically add the scope class name to the styles and provide a `:global()` selector to opt out of scoping instead of explicitly opting in.
+Think of it as "scoped stylez"!
 
-## Why eszett?
+## Heavily Inspired by styled-jsx  
 
-I wanted something that can be abbreviated to two letters (`sz`).  
-A short form for "scoped css" but I did not like `sc`, `sx` was another option, but then I rememberd that the german letter ß is also called eszett and that is the name i picked.
+I’ve always appreciated the developer experience (DX) and core concept of `styled-jsx`: it simplifies styling by simply adding a class name to elements. However, I often wished for direct access to the class name it generates. This plugin was born from that idea.  
 
-Think of it as "scoped stylez" :-)
+The decision to create `eszett` solidified when I tried using `styled-jsx` with React Server Components and found it lacking compatibility.  
+
+It’s not just the ideas that are inspired by `styled-jsx` — I also reused parts of its implementation. Specifically, I adapted the logic for adding class names and even some of its tests.  
+
