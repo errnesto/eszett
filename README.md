@@ -2,7 +2,7 @@
 
 **Explicit CSS Scopes for React**  
 
-Inspired by `styled-jsx`, but a build-time only plugin, making it compatible with server components.  
+Inspired by [`styled-jsx`](https://github.com/vercel/styled-jsx), but a build-time only plugin, making it compatible with react server components.  
 
 ```jsx
 import eszett from "eszett";
@@ -215,7 +215,7 @@ I wanted a name that could be shortened to two letters (sz), representing "scope
 
 Think of it as "scoped stylez"!
 
-## Heavily Inspired by styled-jsx  
+## Heavily Inspired by [styled-jsx](https://github.com/vercel/styled-jsx)
 
 I’ve always appreciated the developer experience (DX) and core concept of `styled-jsx`: it simplifies styling by simply adding a class name to elements. However, I often wished for direct access to the class name it generates. This plugin was born from that idea.  
 
