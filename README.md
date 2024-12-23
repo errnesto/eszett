@@ -34,9 +34,9 @@ async function Header() {
 npm install eszett
 ```
 
-`eszett` is an [swc](https://swc.rs/docs/usage/swc-loader) plugin – so it should work wherever swc works.
+`eszett` is an [swc](https://swc.rs/docs/usage/swc-loader) plugin – so it should work wherever swc works. But I wrote this so I can use it for my nextjs projects so it is only tested with nextjs.
 
-### With NextJs
+### With NextJs (requires nextjs 15)
 
 In nextjs you can add it to your `next.config.js`:
 
@@ -135,6 +135,28 @@ async function Component(props) {
 }
 ```
 
+### Deduplicating Styles (requires react 19)
+
+eszett does nothing special here but react can deduplicate styles when the style tag has a `href` and a `precedence`. (https://react.dev/reference/react-dom/components/style#special-rendering-behavior)
+
+As long as you have a single style tag in your component can use the `eszett` variable as the href:
+
+```jsx
+import eszett from "eszett";
+
+async function Header() {
+  return (
+    <div className='header'>
+      <style href={eszett} precedence="eszett">{`
+        .${eszett}.header {
+          background: blue;
+        }
+      `}</style>
+    </header>
+  );
+}
+```
+
 ### How it Works
 
 eszett generates a unique id for each react component rewrites the classNames of your html elements, and gives you two helper methods to access the scope name:
@@ -178,3 +200,10 @@ import { sz } from "eszett";
 Together with support for [`<style>` tags in react 19](https://react.dev/reference/react-dom/components/style) this is all we need to encapsulate our styles inside our components.
 
 Since the scoping is very explicit you can decide for yourself if you use css nesting or css scope or just always write `.${eszett}.title` in your selectors. Maybe in the future I will update this to automatically add the scope class name to the styles and provide a `:global()` selector to opt out of scoping instead of explicitly opting in.
+
+## Why eszett?
+
+I wanted something that can be abbreviated to two letters (`sz`).  
+A short form for "scoped css" but I did not like `sc`, `sx` was another option, but then I rememberd that the german letter ß is also called eszett and that is the name i picked.
+
+Think of it as "scoped stylez" :-)
