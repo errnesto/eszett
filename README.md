@@ -145,7 +145,7 @@ async function Component(props) {
 
 ### Deduplicating Styles (requires React 19)  
 
-`eszett` leverages [React's built-in style deduplication](https://react.dev/reference/react-dom/components/style#special-rendering-behavior) for `<style>` tags with a `href` and `precedence` attribute. Use the `eszett` variable as the `href` to enable this behavior.  
+`eszett` leverages [React's built-in style deduplication](https://react.dev/reference/react-dom/components/style#special-rendering-behavior) for `<style>` tags with a `href` and `precedence` attribute. Use the `eszett` variable as the `href` to enable this behavior. **This means you can only have one single style tag per component – otherwise you need to use different href attributes per style**
 
 ```jsx
 import eszett from "eszett";
